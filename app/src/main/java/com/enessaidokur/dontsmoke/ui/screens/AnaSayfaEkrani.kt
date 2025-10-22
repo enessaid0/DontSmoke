@@ -64,7 +64,7 @@ fun AnaSayfaEkrani() {
             TopAppBar(
                 title = {
                     Text(
-                        text = "İlerleme",
+                        text = "İlerlemece",
                         color = Color.White, // Yazı rengi
                         fontWeight = FontWeight.Bold,
                         fontSize = 22.sp
