@@ -80,7 +80,7 @@ fun AnaSayfaEkrani() {
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = statusbarYesili
+                    containerColor = acikGriArkaPlan
                 )
             )
         },
