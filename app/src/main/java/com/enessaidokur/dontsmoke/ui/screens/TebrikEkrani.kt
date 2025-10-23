@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -44,7 +45,7 @@ fun TebrikEkrani(onHadiBaslayalimClicked: () -> Unit) {
             Column(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = 100.dp, start = 32.dp, end = 32.dp)
+                    .padding(top = 70.dp, start = 32.dp, end = 32.dp)
                     .fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -71,8 +72,8 @@ fun TebrikEkrani(onHadiBaslayalimClicked: () -> Unit) {
                 contentDescription = "Tebrikler Karakteri",
                 modifier = Modifier
                     .align(Alignment.BottomCenter) // Alta hizala
-                    .padding(bottom = 140.dp) // Butonun üstünde durması için
-                    .size(400.dp) // Boyutunu ayarla
+                    .padding(bottom = 100.dp) // Butonun üstünde durması için
+                    .size(500.dp) // Boyutunu ayarla
             )
 
             // --- BUTON (EN ALTTA) ---
@@ -82,7 +83,8 @@ fun TebrikEkrani(onHadiBaslayalimClicked: () -> Unit) {
                     .align(Alignment.BottomCenter) // Ekranın en altına hizala
                     .fillMaxWidth()
                     .padding(horizontal = 32.dp) // Kenarlardan boşluk
-                    .padding(bottom = 60.dp) // Telefondan alttan boşluk
+                    .navigationBarsPadding()
+                    .padding(bottom = 8.dp) // Telefondan alttan boşluk
                     .height(60.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = buttonColor // Tasarımdaki mor renk

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -168,8 +169,8 @@ fun SigaraBilgileriEkrani(onIleriClicked: (String, String) -> Unit) {
                 modifier = Modifier
                     .align(Alignment.BottomCenter) // Ekranın en altına hizala
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp) // Kenar boşlukları
-                    .padding(bottom = 40.dp) // Telefondan alttan boşluk
+                    .padding(horizontal = 16.dp)
+                    .navigationBarsPadding()
                     .height(60.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = buttonColor // Tasarımdaki mor renk
