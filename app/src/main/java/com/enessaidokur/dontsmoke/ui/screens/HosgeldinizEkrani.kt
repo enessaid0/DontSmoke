@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -70,11 +71,10 @@ fun HosgeldinizEkrani(onIleriClicked: () -> Unit) {
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .height(110.dp)
-                    .width(360.dp)
-                    .padding(bottom = 20.dp)
+                    .navigationBarsPadding()
+                    .padding(bottom = 8.dp)
                     .clip(RoundedCornerShape(bottomStart = 40.dp, bottomEnd = 40.dp,topStart = 40.dp, topEnd = 30.dp)) // Yuvarlak köşeler
-                    .background(Color.White)
+
             ) {
                 // İleri Butonu (Beyaz alanın içinde ortada)
                 Button(
@@ -99,8 +99,8 @@ fun HosgeldinizEkrani(onIleriClicked: () -> Unit) {
                 contentDescription = "Hoşgeldiniz Karakteri",
                 modifier = Modifier
                     .align(Alignment.BottomCenter) // Alta hizala
-                    .padding(bottom = 150.dp) // Beyaz alanın üzerine taşımak için
-                    .size(400.dp), // Karakterin boyutu
+                    .padding(bottom = 130.dp) // Beyaz alanın üzerine taşımak için
+                    .size(500.dp), // Karakterin boyutu
                 contentScale = ContentScale.Fit
             )
         }
