@@ -2,10 +2,10 @@ package com.enessaidokur.dontsmoke.ui.screens
 
 
 
+import DontSmokeTheme
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Divider
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -425,5 +425,7 @@ fun TahminSatiri(zaman: String, para: String, hayat: String) {
 @Preview(showBackground = true)
 @Composable
 fun AnaSayfaEkraniPreview() {
-
+    DontSmokeTheme {
+        AnaSayfaEkrani()
+    }
 }
