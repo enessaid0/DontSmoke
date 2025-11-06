@@ -1,14 +1,12 @@
 package com.enessaidokur.dontsmoke.ui.screens
 
 
-import BottomNavigationBar
-import android.R.attr.text
+
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Divider
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -44,7 +42,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -52,7 +49,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavHostController
 import com.enessaidokur.dontsmoke.R
 import com.enessaidokur.dontsmoke.ui.components.acikGriArkaPlan
 import com.enessaidokur.dontsmoke.ui.components.acikYesil
@@ -62,7 +58,7 @@ import com.enessaidokur.dontsmoke.ui.components.koyuMetin
 import com.enessaidokur.dontsmoke.ui.components.progressGray
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
-import com.enessaidokur.dontsmoke.ui.navigation.Rotalar
+
 
 
 @OptIn(ExperimentalMaterial3Api::class)

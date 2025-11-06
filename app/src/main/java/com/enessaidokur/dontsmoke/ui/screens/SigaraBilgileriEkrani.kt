@@ -39,6 +39,7 @@ import com.enessaidokur.dontsmoke.R // <-- R dosyasını import etmen gerekiyor
 import com.enessaidokur.dontsmoke.ui.components.ArkaPlanBackground
 import com.enessaidokur.dontsmoke.ui.components.buttonColor
 import com.enessaidokur.dontsmoke.ui.components.darkTextColor
+import com.enessaidokur.dontsmoke.ui.components.koyuMetin
 
 // Tasarımdaki renkleri tanımlayalım
 
@@ -50,6 +51,7 @@ fun SigaraBilgileriEkrani(onIleriClicked: (String, String, String) -> Unit) {
     var kacYildirIciliyor by remember { mutableStateOf("") }
     var gundeKacTaneIciliyor by remember { mutableStateOf("") }
     var kacTl by remember { mutableStateOf("") }
+
 
     ArkaPlanBackground {
 
@@ -102,6 +104,8 @@ fun SigaraBilgileriEkrani(onIleriClicked: (String, String, String) -> Unit) {
                         keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
                         shape = RoundedCornerShape(12.dp),
                         colors = TextFieldDefaults.colors(
+                            focusedTextColor = koyuMetin,
+                            unfocusedTextColor = koyuMetin,
                             unfocusedContainerColor = textFieldBackgroundColor, // Odaklanılmamışken arka plan rengi
                             focusedContainerColor = textFieldBackgroundColor,   // Odaklanılmışken arka plan rengi
                             focusedIndicatorColor = Color.Transparent,  // Alt çizgiyi kaldır
@@ -131,6 +135,8 @@ fun SigaraBilgileriEkrani(onIleriClicked: (String, String, String) -> Unit) {
                         keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
                         shape = RoundedCornerShape(12.dp),
                         colors = TextFieldDefaults.colors(
+                            focusedTextColor = koyuMetin,
+                            unfocusedTextColor = koyuMetin,
                             unfocusedContainerColor = textFieldBackgroundColor, // Odaklanılmamışken arka plan rengi
                             focusedContainerColor = textFieldBackgroundColor,   // Odaklanılmışken arka plan rengi
                             focusedIndicatorColor = Color.Transparent,  // Alt çizgiyi kaldır
@@ -156,6 +162,8 @@ fun SigaraBilgileriEkrani(onIleriClicked: (String, String, String) -> Unit) {
                         keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
                         shape = RoundedCornerShape(12.dp),
                         colors = TextFieldDefaults.colors(
+                            focusedTextColor = koyuMetin,
+                            unfocusedTextColor = koyuMetin,
                             unfocusedContainerColor = textFieldBackgroundColor, // Odaklanılmamışken arka plan rengi
                             focusedContainerColor = textFieldBackgroundColor,   // Odaklanılmışken arka plan rengi
                             focusedIndicatorColor = Color.Transparent,  // Alt çizgiyi kaldır

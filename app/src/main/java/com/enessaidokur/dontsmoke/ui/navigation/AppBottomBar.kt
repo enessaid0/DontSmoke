@@ -27,6 +27,27 @@ fun BottomNavigationBar(
     NavigationBar(
         containerColor = acikGriArkaPlan
     ) {
+        // --- Cüzdan İTEMİ ---
+        NavigationBarItem(
+            icon = {
+                Icon(modifier = Modifier.size(35.dp), painter = painterResource(id = R.drawable.cuzdan), contentDescription = "Yatırım", tint = anaYesil)
+            },
+            label = { Text("Cüzdan", color = Color.Black, fontSize = 15.sp, fontWeight = FontWeight.Bold) },
+            // 2. Değişiklik: Seçilme durumunu dinamik yap
+            selected = currentRoute == Rotalar.CUZDAN,
+            onClick = {
+                // 3. Değişiklik: Navigasyon mantığını düzelt
+                if (currentRoute != Rotalar.CUZDAN) {
+                    navController.navigate(Rotalar.CUZDAN) {
+                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            }
+        )
+
+
         // --- YATIRIM İTEMİ ---
         NavigationBarItem(
             icon = {

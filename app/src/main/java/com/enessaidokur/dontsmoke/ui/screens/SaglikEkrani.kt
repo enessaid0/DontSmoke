@@ -114,7 +114,7 @@ fun SaglikEkrani() {
 //ÖZEL APP BAR FONKSİYONU
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun KalpRitmiAppBar() {
+fun KalpRitmiAppBar() {
 
     // --- Animasyon, Fırça, Resim (Bunlar aynı) ---
     val infiniteTransition = rememberInfiniteTransition(label = "kalpRitmiShimmer")
@@ -147,7 +147,7 @@ private fun KalpRitmiAppBar() {
             .fillMaxWidth()
             .height(72.dp) // AppBar yüksekliği
             // BU ÖNEMLİ: Box'ın kendisinin Status Bar'ın altına inmesini sağlıyoruz
-            .windowInsetsPadding(WindowInsets.statusBars)
+
     ) {
         // 1. Katman: Arka Plan (TopAppBar gibi davranıyor)
         // Standart TopAppBar'ı KULLANMIYORUZ, sadece rengi çiziyoruz
