@@ -19,19 +19,14 @@ import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.Locale
 
-// 1. Yatırım ekranının ihtiyacı olan tüm veriyi tutacak UiState
 data class YatirimUiState(
-    // Bakiye Bilgileri
-    val birikenPara: Double = 0.0,
-    val birikenParaFormatli: String = "0,00 ₺",
-
-    // API Verileri
+    val kullanilabilirBakiye: Double = 0.0,
+    val kullanilabilirBakiyeFormatli: String = "0,00 ₺",
     val anlikFiyatlar: Map<String, Double> = emptyMap(),
     val isFiyatlarLoading: Boolean = false,
     val fiyatHataMesaji: String? = null
 )
 
-// 2. ViewModel Sınıfı
 class YatirimViewModel(private val repository: KullaniciVeriRepository) : ViewModel() {
 
     private val _uiState = MutableStateFlow(YatirimUiState())
@@ -47,28 +42,42 @@ class YatirimViewModel(private val repository: KullaniciVeriRepository) : ViewMo
 
     private fun observeKullaniciVerileri() {
         viewModelScope.launch(Dispatchers.Default) {
+            // Harcama akışını da dinleyerek bakiye senkronizasyonunu sağla
             combine(
                 repository.birakmaTarihi,
                 repository.gundeKacPaket,
-                repository.paketFiyati
-            ) { birakmaTarihi, gundeKacPaket, paketFiyati ->
-                Triple(birakmaTarihi, gundeKacPaket, paketFiyati)
-            }.collect { (birakmaTarihi, gundeKacPaket, paketFiyati) ->
+                repository.paketFiyati,
+                repository.toplamHarcanan // Harcama takibi eklendi
+            ) { birakmaTarihi, gundeKacPaket, paketFiyati, toplamHarcanan ->
+                // Verileri bir nesnede grupla
+                object {
+                    val bt = birakmaTarihi
+                    val gkp = gundeKacPaket
+                    val pf = paketFiyati
+                    val th = toplamHarcanan
+                }
+            }.collect { data ->
                 paraGuncellemeJob?.cancel()
                 paraGuncellemeJob = viewModelScope.launch(Dispatchers.Default) {
-                    val gunlukMaliyet : Float= gundeKacPaket * paketFiyati
-                    val saniyelikMaliyet: Float = gunlukMaliyet / (24 * 60 * 60)
+                    val gunlukMaliyet = data.gkp.toDouble() * data.pf.toDouble()
+                    val saniyelikMaliyet = gunlukMaliyet / (24 * 60 * 60)
 
                     while (true) {
-                        if (birakmaTarihi > 0) {
-                            val gecenSureSaniye  = (System.currentTimeMillis() - birakmaTarihi) / 1000
-                            val anlikBirikenPara= gecenSureSaniye * saniyelikMaliyet
-                            _uiState.update {
-                                it.copy(
-                                    birikenPara = anlikBirikenPara.toDouble(),
-                                    birikenParaFormatli = currencyFormatter.format(anlikBirikenPara)
-                                )
-                            }
+                        val birikenPara = if (data.bt > 0) {
+                            val gecenSureSaniye = (System.currentTimeMillis() - data.bt) / 1000
+                            gecenSureSaniye * saniyelikMaliyet
+                        } else {
+                            0.0
+                        }
+                        
+                        // Kullanılabilir bakiyeyi, harcamaları düşerek doğru hesapla
+                        val kullanilabilirBakiye = birikenPara - data.th
+
+                        _uiState.update {
+                            it.copy(
+                                kullanilabilirBakiye = kullanilabilirBakiye,
+                                kullanilabilirBakiyeFormatli = currencyFormatter.format(kullanilabilirBakiye)
+                            )
                         }
                         delay(1000)
                     }
@@ -81,16 +90,14 @@ class YatirimViewModel(private val repository: KullaniciVeriRepository) : ViewMo
         viewModelScope.launch(Dispatchers.IO) {
             fetchAnlikFiyatlar(showLoading = true)
             while (true) {
-                delay(18000000L) // 5 Saatte bir güncelle
+                delay(18000000L)
                 fetchAnlikFiyatlar(showLoading = false)
             }
         }
     }
 
     fun fetchAnlikFiyatlar(showLoading: Boolean) {
-        if (showLoading) {
-            _uiState.update { it.copy(isFiyatlarLoading = true, fiyatHataMesaji = null) }
-        }
+        if (showLoading) _uiState.update { it.copy(isFiyatlarLoading = true, fiyatHataMesaji = null) }
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 coroutineScope {
@@ -132,8 +139,25 @@ class YatirimViewModel(private val repository: KullaniciVeriRepository) : ViewMo
         }
     }
 
-    fun satinAl(harcananTutar: Double) {
-        // Bu fonksiyonun iç mantığı, biriken paranın nasıl yönetileceğine göre doldurulacak.
+    fun satinAl(harcananTutar: Double, alinanMiktar: Double, varlikKodu: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            if (_uiState.value.kullanilabilirBakiye < harcananTutar) {
+                _uiState.update { it.copy(fiyatHataMesaji = "Yetersiz Bakiye") }
+                delay(2000)
+                _uiState.update { it.copy(fiyatHataMesaji = null) }
+                return@launch
+            }
+
+            // Önce harcamayı, sonra varlığı Repository'e kaydet
+            repository.harcamaEkle(harcananTutar)
+            when (varlikKodu) {
+                "ALTIN" -> repository.altinEkle(alinanMiktar)
+                "GUMUS" -> repository.gumusEkle(alinanMiktar)
+                "DOLAR" -> repository.dolarEkle(alinanMiktar)
+                "EURO" -> repository.euroEkle(alinanMiktar)
+                "BTC" -> repository.btcEkle(alinanMiktar)
+            }
+        }
     }
 
     companion object {

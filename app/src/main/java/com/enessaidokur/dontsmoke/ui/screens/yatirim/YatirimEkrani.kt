@@ -5,14 +5,11 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,29 +20,26 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.enessaidokur.dontsmoke.R
-import com.enessaidokur.dontsmoke.network.GoldPriceResult
+// Eksik importlar eklendi
+import com.enessaidokur.dontsmoke.data.KullaniciVeriRepository
 import com.enessaidokur.dontsmoke.network.RetrofitInstance
 import com.enessaidokur.dontsmoke.ui.components.acikGriArkaPlan
 import com.enessaidokur.dontsmoke.ui.components.acikYesil
 import com.enessaidokur.dontsmoke.ui.components.anaYesil
 import com.enessaidokur.dontsmoke.ui.components.koyuMetin
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun YatirimEkrani() {
-
-    // --- VERİLER VE DURUMLAR ---
-    // Henüz ViewModel olmadığı için her şey burada, Composable içinde yönetiliyor.
-    var dovizVerileri by remember { mutableStateOf<List<GoldPriceResult>>(emptyList()) }
-    var yukleniyor by remember { mutableStateOf(true) }
-    var hata by remember { mutableStateOf<String?>(null) }
-    val coroutineScope = rememberCoroutineScope()
-    val apiService = RetrofitInstance.api
+fun YatirimEkrani(
+    // ViewModel'i ekrana dahil et
+    yatirimViewModel: YatirimViewModel = viewModel(factory = YatirimViewModel.Factory(repository = getRepository()))
+) {
+    // ViewModel'deki durumu (UiState) dinle
+    val uiState by yatirimViewModel.uiState.collectAsState()
 
     // --- SİSTEM ÇUBUĞU RENKLERİ ---
     val systemUiController = rememberSystemUiController()
@@ -54,25 +48,6 @@ fun YatirimEkrani() {
         systemUiController.setNavigationBarColor(color = Color.White, darkIcons = true)
     }
 
-    // --- VERİLERİ ÇEKME İŞLEMİ ---
-    // Bu 'LaunchedEffect', ekran ilk açıldığında SADECE BİR KERE çalışır.
-    LaunchedEffect(key1 = true) {
-        coroutineScope.launch(Dispatchers.IO) {
-            try {
-                // API'ye istek atıp cevabı alıyoruz.
-                val response = apiService.getGoldPrices()
-                // Gelen veriyi state'e atıyoruz, bu da arayüzü güncelliyor.
-                dovizVerileri = response.result
-                yukleniyor = false // Yüklenme bitti.
-            } catch (e: Exception) {
-                // Hata olursa, hata mesajını state'e atıyoruz.
-                hata = "Veriler yüklenemedi: ${e.localizedMessage}"
-                yukleniyor = false // Yüklenme bitti (başarısız).
-            }
-        }
-    }
-
-    // --- EKRANIN ANA YAPISI ---
     Scaffold(
         topBar = {
             TopAppBar(
@@ -91,18 +66,30 @@ fun YatirimEkrani() {
                 .padding(innerPadding),
             contentAlignment = Alignment.Center
         ) {
-            // Yüklenme, Hata ve Başarı durumlarına göre doğru arayüzü göster.
+            // Yüklenme, Hata ve Başarı durumlarını ViewModel'den gelen verilere göre yönet
             when {
-                yukleniyor -> CircularProgressIndicator(color = anaYesil)
-                hata != null -> Text(text = hata!!, color = Color.Red, textAlign = TextAlign.Center)
-                else -> YatirimIcerigi(dovizVerileri = dovizVerileri) // Veriler geldiyse içeriği göster.
+                uiState.isFiyatlarLoading -> CircularProgressIndicator(color = anaYesil)
+                uiState.fiyatHataMesaji != null -> {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = uiState.fiyatHataMesaji!!,
+                            color = Color.Red,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(onClick = { yatirimViewModel.fetchAnlikFiyatlar(true) }) {
+                            Text("Tekrar Dene")
+                        }
+                    }
+                }
+                else -> YatirimIcerigi(uiState = uiState, onSatinAl = yatirimViewModel::satinAl)
             }
         }
     }
 }
 
 @Composable
-fun YatirimIcerigi(dovizVerileri: List<GoldPriceResult>) {
+fun YatirimIcerigi(uiState: YatirimUiState, onSatinAl: (Double, Double, String) -> Unit) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -110,7 +97,7 @@ fun YatirimIcerigi(dovizVerileri: List<GoldPriceResult>) {
         contentPadding = PaddingValues(vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Bakiye Kartı (Henüz hesaplama olmadığı için statik bir değer gösteriyor)
+        // Bakiye Kartı - Artık ViewModel'den gelen canlı veriyi gösteriyor
         item {
             Card(
                 modifier = Modifier
@@ -121,27 +108,61 @@ fun YatirimIcerigi(dovizVerileri: List<GoldPriceResult>) {
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Kullanılabilir Bakiye", fontSize = 16.sp, color = Color.White.copy(alpha = 0.8f))
-                    // Bu değer henüz dinamik değil, sadece bir yer tutucu.
-                    Text("0,00 ₺", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    // ViewModel'den gelen formatlanmış bakiyeyi kullan
+                    Text(uiState.kullanilabilirBakiyeFormatli, fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 }
             }
         }
 
-        // İnternetten gelen her bir döviz verisi için bir kart oluşturur.
-        items(dovizVerileri) { doviz ->
-            // API'den gelen "Gram Altın", "Gümüş/Ons" gibi isimleri kendi istediğimiz formata çeviriyoruz.
-            val (isim, ikon, birim) = when {
-                doviz.name.contains("Gram Altın", ignoreCase = true) -> Triple("Altın", R.drawable.altin, "gr")
-                doviz.name.contains("Gümüş", ignoreCase = true) -> Triple("Gümüş", R.drawable.gumus, "gr")
-                doviz.name.contains("Dolar", ignoreCase = true) -> Triple("Dolar", R.drawable.dolar, "$")
-                else -> null // Euro, Sterlin gibi diğer verileri şimdilik atlıyoruz.
-            } ?: return@items // Eğer istediğimiz bir döviz değilse, bu döngü adımını atla.
-
+        // Yatırım Araçları (ViewModel'den gelen fiyatlarla)
+        item {
+            val fiyat = uiState.anlikFiyatlar["ALTIN"] ?: 0.0
             YatirimAraciKarti(
-                isim = isim,
-                guncelFiyat = doviz.selling ?: 0.0,
-                ikonResId = ikon,
-                birim = birim
+                isim = "Altın",
+                guncelFiyat = fiyat,
+                ikonResId = R.drawable.altin,
+                birim = "gr",
+                onSatinAl = { harcanan, miktar -> onSatinAl(harcanan, miktar, "ALTIN") }
+            )
+        }
+        item {
+            val fiyat = uiState.anlikFiyatlar["GUMUS"] ?: 0.0
+            YatirimAraciKarti(
+                isim = "Gümüş",
+                guncelFiyat = fiyat,
+                ikonResId = R.drawable.gumus,
+                birim = "gr",
+                onSatinAl = { harcanan, miktar -> onSatinAl(harcanan, miktar, "GUMUS") }
+            )
+        }
+        item {
+            val fiyat = uiState.anlikFiyatlar["USD"] ?: 0.0
+            YatirimAraciKarti(
+                isim = "Dolar",
+                guncelFiyat = fiyat,
+                ikonResId = R.drawable.dolar,
+                birim = "$",
+                onSatinAl = { harcanan, miktar -> onSatinAl(harcanan, miktar, "DOLAR") }
+            )
+        }
+        item {
+            val fiyat = uiState.anlikFiyatlar["EUR"] ?: 0.0
+            YatirimAraciKarti(
+                isim = "Euro",
+                guncelFiyat = fiyat,
+                ikonResId = R.drawable.euro,
+                birim = "€",
+                onSatinAl = { harcanan, miktar -> onSatinAl(harcanan, miktar, "EURO") }
+            )
+        }
+        item {
+            val fiyat = uiState.anlikFiyatlar["BTC"] ?: 0.0
+            YatirimAraciKarti(
+                isim = "Bitcoin",
+                guncelFiyat = fiyat,
+                ikonResId = R.drawable.bitcoin,
+                birim = "BTC",
+                onSatinAl = { harcanan, miktar -> onSatinAl(harcanan, miktar, "BTC") }
             )
         }
     }
@@ -152,11 +173,11 @@ fun YatirimAraciKarti(
     isim: String,
     guncelFiyat: Double,
     @DrawableRes ikonResId: Int,
-    birim: String
+    birim: String,
+    onSatinAl: (harcananTutar: Double, alinanMiktar: Double) -> Unit
 ) {
     var girilenTutar by remember { mutableStateOf("") }
     val girilenTutarDouble = girilenTutar.toDoubleOrNull() ?: 0.0
-    // Girilen tutara göre ne kadar alınabileceğini anlık olarak hesapla.
     val hesaplananMiktar = if (guncelFiyat > 0) girilenTutarDouble / guncelFiyat else 0.0
 
     Card(
@@ -168,7 +189,6 @@ fun YatirimAraciKarti(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Kartın üst kısmı: İkon, İsim ve Güncel Fiyat
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -190,7 +210,6 @@ fun YatirimAraciKarti(
             Spacer(modifier = Modifier.height(16.dp))
             Divider(color = acikGriArkaPlan, thickness = 1.dp)
             Spacer(modifier = Modifier.height(16.dp))
-            // Kartın alt kısmı: Tutar giriş alanı ve "Al" butonu
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -219,9 +238,11 @@ fun YatirimAraciKarti(
                 Spacer(modifier = Modifier.width(16.dp))
                 Button(
                     colors = ButtonDefaults.buttonColors(containerColor = anaYesil),
-                    onClick = { /* Buton henüz bir işlevselliğe sahip değil */ },
+                    onClick = { 
+                        onSatinAl(girilenTutarDouble, hesaplananMiktar)
+                        girilenTutar = "" // Alanı temizle
+                    },
                     modifier = Modifier.height(56.dp),
-                    // Buton sadece pozitif bir tutar girildiğinde aktif olur.
                     enabled = (girilenTutarDouble > 0)
                 ) {
                     Text(text = "Al")
@@ -229,4 +250,10 @@ fun YatirimAraciKarti(
             }
         }
     }
+}
+
+@Composable
+private fun getRepository(): KullaniciVeriRepository {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    return remember { KullaniciVeriRepository(context, RetrofitInstance.api) }
 }
