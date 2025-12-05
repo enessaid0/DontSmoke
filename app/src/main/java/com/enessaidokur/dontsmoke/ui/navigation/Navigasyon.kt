@@ -1,23 +1,26 @@
 package com.enessaidokur.dontsmoke.ui.navigation
 
 import BottomNavigationBar
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.enessaidokur.dontsmoke.data.KullaniciVeriRepository
-import com.enessaidokur.dontsmoke.network.RetrofitInstance
 import com.enessaidokur.dontsmoke.ui.screens.anasayfa.AnaSayfaEkrani
 import com.enessaidokur.dontsmoke.ui.screens.anasayfa.AnaSayfaViewModel
 import com.enessaidokur.dontsmoke.ui.screens.cuzdan.CuzdanEkrani
 import com.enessaidokur.dontsmoke.ui.screens.cuzdan.CuzdanViewModel
+import com.enessaidokur.dontsmoke.ui.screens.giris.GirisEkrani
 import com.enessaidokur.dontsmoke.ui.screens.onboarding.HosgeldinizEkrani
 import com.enessaidokur.dontsmoke.ui.screens.onboarding.SigaraBilgileriEkrani
 import com.enessaidokur.dontsmoke.ui.screens.onboarding.TebrikEkrani
@@ -29,6 +32,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 object Rotalar {
+    const val GIRIS = "giris"
     const val HOSGELDINIZ = "hosgeldin"
     const val SIGARA_BILGILERI = "sigara_bilgileri"
     const val TEBRIK = "tebrikler"
@@ -42,9 +46,14 @@ object Rotalar {
 @Composable
 fun Navigasyon(kullaniciVeriRepository: KullaniciVeriRepository) {
     val navController = rememberNavController()
-    val onboardingTamamlandi by kullaniciVeriRepository.onboardingTamamlandi.collectAsState(initial = false)
+    val onboardingTamamlandi by kullaniciVeriRepository.onboardingTamamlandi.collectAsState(initial = null)
 
-    val baslangicRotasi = if (onboardingTamamlandi) Rotalar.MAIN_APP_ROUTE else Rotalar.HOSGELDINIZ
+    if (onboardingTamamlandi == null) {
+        Surface(modifier = Modifier.fillMaxSize(), color = Color.White) {}
+        return
+    }
+
+    val baslangicRotasi = if (onboardingTamamlandi == true) Rotalar.GIRIS else Rotalar.HOSGELDINIZ
 
     NavHost(
         navController = navController,
@@ -69,13 +78,21 @@ fun Navigasyon(kullaniciVeriRepository: KullaniciVeriRepository) {
                     CoroutineScope(Dispatchers.IO).launch {
                         kullaniciVeriRepository.onboardingiTamamla()
                     }
-                    navController.navigate(Rotalar.MAIN_APP_ROUTE) {
+                    navController.navigate(Rotalar.GIRIS) {
                         popUpTo(Rotalar.HOSGELDINIZ) { inclusive = true }
                     }
                 }
             )
         }
-
+        composable(Rotalar.GIRIS) {
+            GirisEkrani(
+                onGirisTamamlandi = {
+                    navController.navigate(Rotalar.MAIN_APP_ROUTE) {
+                        popUpTo(Rotalar.GIRIS) { inclusive = true }
+                    }
+                }
+            )
+        }
         composable(Rotalar.MAIN_APP_ROUTE) {
             MainAppScreen(kullaniciVeriRepository = kullaniciVeriRepository)
         }
