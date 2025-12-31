@@ -1,18 +1,18 @@
 package com.enessaidokur.dontsmoke.ui.screens.saglik
 
-
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.forEach
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.collectAsState // <-- ÖNEMLİ İMPORT
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,11 +32,12 @@ import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SaglikEkrani(viewModel: SaglikEkraniViewModel) {
+fun SaglikEkrani(
+    viewModel: SaglikEkraniViewModel,
+    onFabClicked: () -> Unit // Navigasyon için eklendi
+) {
 
-    //  ViewModel'in sunduğu canlı veriyi dinliyoruz.
     val saglikHedefleri by viewModel.uiState.collectAsState()
-
 
     val systemUiController = rememberSystemUiController()
     SideEffect {
@@ -46,7 +47,16 @@ fun SaglikEkrani(viewModel: SaglikEkraniViewModel) {
 
     Scaffold(
         topBar = { KalpRitmiAppBar() },
-        containerColor = acikGriArkaPlan
+        containerColor = acikGriArkaPlan,
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onFabClicked, // Tıklandığında navigasyonu tetikle
+                containerColor = anaYesil,
+                contentColor = Color.White
+            ) {
+                Icon(Icons.Filled.AutoAwesome, contentDescription = "Yapay Zeka Asistanı")
+            }
+        }
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -56,7 +66,6 @@ fun SaglikEkrani(viewModel: SaglikEkraniViewModel) {
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // ViewModel'den gelen hazır "saglikHedefleri" listesini döngüye alıyoruz.
             saglikHedefleri.forEach { hedef ->
                 SaglikHedefKarti(
                     aciklama = hedef.aciklama,
@@ -67,6 +76,7 @@ fun SaglikEkrani(viewModel: SaglikEkraniViewModel) {
         }
     }
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KalpRitmiAppBar() {

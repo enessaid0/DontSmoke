@@ -27,6 +27,8 @@ import com.enessaidokur.dontsmoke.ui.screens.onboarding.TebrikEkrani
 import com.enessaidokur.dontsmoke.ui.screens.saglik.SaglikEkrani
 import com.enessaidokur.dontsmoke.ui.screens.saglik.SaglikEkraniViewModel
 import com.enessaidokur.dontsmoke.ui.screens.yatirim.YatirimEkrani
+import com.enessaidokur.dontsmoke.ui.screens.yapayzeka.YapayZekaSohbetEkrani
+import com.enessaidokur.dontsmoke.ui.screens.yapayzeka.YapayZekaSohbetViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -41,6 +43,7 @@ object Rotalar {
     const val YATIRIM = "yatirim"
     const val SAGLIK = "saglik"
     const val CUZDAN = "cuzdan"
+    const val YAPAY_ZEKA_SOHBET = "yapay_zeka_sohbet"
 }
 
 @Composable
@@ -105,16 +108,17 @@ fun MainAppScreen(kullaniciVeriRepository: KullaniciVeriRepository) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // Tüm Fabrikaları (Usta Başılarını) burada bir kere oluşturuyoruz
+    val bottomBarRoutes = setOf(Rotalar.ANA_SAYFA, Rotalar.YATIRIM, Rotalar.SAGLIK, Rotalar.CUZDAN)
+
     val anaSayfaViewModelFactory = AnaSayfaViewModel.Factory(kullaniciVeriRepository)
-    //val yatirimViewModelFactory = YatirimViewModel.Factory(kullaniciVeriRepository, RetrofitInstance.api)
     val saglikEkraniViewModelFactory = SaglikEkraniViewModel.Factory(kullaniciVeriRepository)
     val cuzdanViewModelFactory = CuzdanViewModel.Factory(kullaniciVeriRepository)
+    val yapayZekaSohbetViewModelFactory = YapayZekaSohbetViewModel.Factory(kullaniciVeriRepository)
 
     Scaffold(
         bottomBar = {
-            if (currentRoute != null) {
-                BottomNavigationBar(navController = navController, currentRoute = currentRoute)
+            if (currentRoute in bottomBarRoutes) {
+                BottomNavigationBar(navController = navController, currentRoute = currentRoute!!)
             }
         }
     ) { innerPadding ->
@@ -128,16 +132,19 @@ fun MainAppScreen(kullaniciVeriRepository: KullaniciVeriRepository) {
                 AnaSayfaEkrani(viewModel = anaSayfaViewModel)
             }
             composable(Rotalar.YATIRIM) {
-                // Artık ViewModel yok, direkt ekranı çağırıyoruz.
                 YatirimEkrani()
             }
             composable(Rotalar.SAGLIK) {
                 val saglikViewModel: SaglikEkraniViewModel = viewModel(factory = saglikEkraniViewModelFactory)
-                SaglikEkrani(viewModel = saglikViewModel)
+                SaglikEkrani(viewModel = saglikViewModel, onFabClicked = { navController.navigate(Rotalar.YAPAY_ZEKA_SOHBET) })
             }
             composable(Rotalar.CUZDAN) {
                 val cuzdanViewModel: CuzdanViewModel = viewModel(factory = cuzdanViewModelFactory)
                 CuzdanEkrani(viewModel = cuzdanViewModel)
+            }
+            composable(Rotalar.YAPAY_ZEKA_SOHBET) {
+                val yapayZekaSohbetViewModel: YapayZekaSohbetViewModel = viewModel(factory = yapayZekaSohbetViewModelFactory)
+                YapayZekaSohbetEkrani(viewModel = yapayZekaSohbetViewModel, onGeriClicked = { navController.popBackStack() })
             }
         }
     }
