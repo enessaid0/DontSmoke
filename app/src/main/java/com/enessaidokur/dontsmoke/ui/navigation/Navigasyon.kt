@@ -1,101 +1,151 @@
 package com.enessaidokur.dontsmoke.ui.navigation
 
 import BottomNavigationBar
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
-import com.enessaidokur.dontsmoke.ui.screens.AnaSayfaEkrani
-import com.enessaidokur.dontsmoke.ui.screens.CuzdanEkrani
-import com.enessaidokur.dontsmoke.ui.screens.HosgeldinizEkrani
-import com.enessaidokur.dontsmoke.ui.screens.SaglikEkrani
-import com.enessaidokur.dontsmoke.ui.screens.SigaraBilgileriEkrani
-import com.enessaidokur.dontsmoke.ui.screens.TebrikEkrani
-import com.enessaidokur.dontsmoke.ui.screens.YatirimEkrani
-import com.enessaidokur.dontsmoke.ui.viewmodel.CuzdanViewModel
+import com.enessaidokur.dontsmoke.data.KullaniciVeriRepository
+import com.enessaidokur.dontsmoke.ui.screens.anasayfa.AnaSayfaEkrani
+import com.enessaidokur.dontsmoke.ui.screens.anasayfa.AnaSayfaViewModel
+import com.enessaidokur.dontsmoke.ui.screens.cuzdan.CuzdanEkrani
+import com.enessaidokur.dontsmoke.ui.screens.cuzdan.CuzdanViewModel
+import com.enessaidokur.dontsmoke.ui.screens.giris.GirisEkrani
+import com.enessaidokur.dontsmoke.ui.screens.onboarding.HosgeldinizEkrani
+import com.enessaidokur.dontsmoke.ui.screens.onboarding.SigaraBilgileriEkrani
+import com.enessaidokur.dontsmoke.ui.screens.onboarding.TebrikEkrani
+import com.enessaidokur.dontsmoke.ui.screens.saglik.SaglikEkrani
+import com.enessaidokur.dontsmoke.ui.screens.saglik.SaglikEkraniViewModel
+import com.enessaidokur.dontsmoke.ui.screens.yatirim.YatirimEkrani
+import com.enessaidokur.dontsmoke.ui.screens.yapayzeka.YapayZekaSohbetEkrani
+import com.enessaidokur.dontsmoke.ui.screens.yapayzeka.YapayZekaSohbetViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 object Rotalar {
-    const val ONBOARDING_GRAPH = "onboarding_graph"
-    const val MAIN_GRAPH = "main_graph"
+    const val GIRIS = "giris"
     const val HOSGELDINIZ = "hosgeldin"
     const val SIGARA_BILGILERI = "sigara_bilgileri"
     const val TEBRIK = "tebrikler"
+    const val MAIN_APP_ROUTE = "main_app_route"
     const val ANA_SAYFA = "ana_sayfa"
     const val YATIRIM = "yatirim"
     const val SAGLIK = "saglik"
     const val CUZDAN = "cuzdan"
+    const val YAPAY_ZEKA_SOHBET = "yapay_zeka_sohbet"
 }
 
 @Composable
-fun Navigasyon(cuzdanViewModel: CuzdanViewModel) {
-    val anaNavController = rememberNavController()
+fun Navigasyon(kullaniciVeriRepository: KullaniciVeriRepository) {
+    val navController = rememberNavController()
+    val onboardingTamamlandi by kullaniciVeriRepository.onboardingTamamlandi.collectAsState(initial = null)
+
+    if (onboardingTamamlandi == null) {
+        Surface(modifier = Modifier.fillMaxSize(), color = Color.White) {}
+        return
+    }
+
+    val baslangicRotasi = if (onboardingTamamlandi == true) Rotalar.GIRIS else Rotalar.HOSGELDINIZ
 
     NavHost(
-        navController = anaNavController,
-        startDestination = Rotalar.ONBOARDING_GRAPH
+        navController = navController,
+        startDestination = baslangicRotasi
     ) {
-        navigation(
-            startDestination = Rotalar.HOSGELDINIZ,
-            route = Rotalar.ONBOARDING_GRAPH
-        ) {
-            composable(Rotalar.HOSGELDINIZ) {
-                HosgeldinizEkrani(
-                    onIleriClicked = { anaNavController.navigate(Rotalar.SIGARA_BILGILERI) }
-                )
-            }
-            composable(Rotalar.SIGARA_BILGILERI) {
-                SigaraBilgileriEkrani(
-                    onIleriClicked = { _, _, _ ->
-                        anaNavController.navigate(Rotalar.TEBRIK)
-                    }
-                )
-            }
-            composable(Rotalar.TEBRIK) {
-                TebrikEkrani(
-                    onHadiBaslayalimClicked = {
-                        anaNavController.navigate(Rotalar.MAIN_GRAPH) {
-                            popUpTo(Rotalar.ONBOARDING_GRAPH) { inclusive = true }
-                        }
-                    }
-                )
-            }
+        composable(Rotalar.HOSGELDINIZ) {
+            HosgeldinizEkrani(onIleriClicked = { navController.navigate(Rotalar.SIGARA_BILGILERI) })
         }
-
-        composable(Rotalar.MAIN_GRAPH) {
-            AnaUygulamaIcerigi(cuzdanViewModel = cuzdanViewModel)
+        composable(Rotalar.SIGARA_BILGILERI) {
+            SigaraBilgileriEkrani(
+                onIleriClicked = { gundeKacPaket, paketFiyati, icilenYil ->
+                    CoroutineScope(Dispatchers.IO).launch {
+                        kullaniciVeriRepository.kaydetSigaraBilgileri(gundeKacPaket.toFloat(), paketFiyati.toFloat(), icilenYil.toFloat())
+                    }
+                    navController.navigate(Rotalar.TEBRIK)
+                }
+            )
+        }
+        composable(Rotalar.TEBRIK) {
+            TebrikEkrani(
+                onHadiBaslayalimClicked = {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        kullaniciVeriRepository.onboardingiTamamla()
+                    }
+                    navController.navigate(Rotalar.GIRIS) {
+                        popUpTo(Rotalar.HOSGELDINIZ) { inclusive = true }
+                    }
+                }
+            )
+        }
+        composable(Rotalar.GIRIS) {
+            GirisEkrani(
+                onGirisTamamlandi = {
+                    navController.navigate(Rotalar.MAIN_APP_ROUTE) {
+                        popUpTo(Rotalar.GIRIS) { inclusive = true }
+                    }
+                }
+            )
+        }
+        composable(Rotalar.MAIN_APP_ROUTE) {
+            MainAppScreen(kullaniciVeriRepository = kullaniciVeriRepository)
         }
     }
 }
 
 @Composable
-fun AnaUygulamaIcerigi(cuzdanViewModel: CuzdanViewModel) {
-    val icNavController = rememberNavController()
-    val navBackStackEntry by icNavController.currentBackStackEntryAsState()
+fun MainAppScreen(kullaniciVeriRepository: KullaniciVeriRepository) {
+    val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+
+    val bottomBarRoutes = setOf(Rotalar.ANA_SAYFA, Rotalar.YATIRIM, Rotalar.SAGLIK, Rotalar.CUZDAN)
+
+    val anaSayfaViewModelFactory = AnaSayfaViewModel.Factory(kullaniciVeriRepository)
+    val saglikEkraniViewModelFactory = SaglikEkraniViewModel.Factory(kullaniciVeriRepository)
+    val cuzdanViewModelFactory = CuzdanViewModel.Factory(kullaniciVeriRepository)
+    val yapayZekaSohbetViewModelFactory = YapayZekaSohbetViewModel.Factory(kullaniciVeriRepository)
 
     Scaffold(
         bottomBar = {
-            BottomNavigationBar(
-                navController = icNavController,
-                currentRoute = currentRoute
-            )
+            if (currentRoute in bottomBarRoutes) {
+                BottomNavigationBar(navController = navController, currentRoute = currentRoute!!)
+            }
         }
     ) { innerPadding ->
         NavHost(
-            navController = icNavController,
+            navController = navController,
             startDestination = Rotalar.ANA_SAYFA,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(Rotalar.ANA_SAYFA) { AnaSayfaEkrani() } 
-            composable(Rotalar.YATIRIM) { YatirimEkrani(cuzdanViewModel = cuzdanViewModel) }
-            composable(Rotalar.SAGLIK) { SaglikEkrani() }
-            composable(Rotalar.CUZDAN) { CuzdanEkrani(cuzdanViewModel = cuzdanViewModel) }
+            composable(Rotalar.ANA_SAYFA) {
+                val anaSayfaViewModel: AnaSayfaViewModel = viewModel(factory = anaSayfaViewModelFactory)
+                AnaSayfaEkrani(viewModel = anaSayfaViewModel)
+            }
+            composable(Rotalar.YATIRIM) {
+                YatirimEkrani()
+            }
+            composable(Rotalar.SAGLIK) {
+                val saglikViewModel: SaglikEkraniViewModel = viewModel(factory = saglikEkraniViewModelFactory)
+                SaglikEkrani(viewModel = saglikViewModel, onFabClicked = { navController.navigate(Rotalar.YAPAY_ZEKA_SOHBET) })
+            }
+            composable(Rotalar.CUZDAN) {
+                val cuzdanViewModel: CuzdanViewModel = viewModel(factory = cuzdanViewModelFactory)
+                CuzdanEkrani(viewModel = cuzdanViewModel)
+            }
+            composable(Rotalar.YAPAY_ZEKA_SOHBET) {
+                val yapayZekaSohbetViewModel: YapayZekaSohbetViewModel = viewModel(factory = yapayZekaSohbetViewModelFactory)
+                YapayZekaSohbetEkrani(viewModel = yapayZekaSohbetViewModel, onGeriClicked = { navController.popBackStack() })
+            }
         }
     }
 }

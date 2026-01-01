@@ -1,4 +1,4 @@
-package com.enessaidokur.dontsmoke.ui.screens
+package com.enessaidokur.dontsmoke.ui.screens.onboarding
 
 
 import androidx.compose.foundation.Image
@@ -47,10 +47,16 @@ import com.enessaidokur.dontsmoke.ui.components.koyuMetin
 private val textFieldBackgroundColor = Color(0xFFF5F5F5) // Gri TextField arka planı
 
 @Composable
-fun SigaraBilgileriEkrani(onIleriClicked: (String, String, String) -> Unit) {
+fun SigaraBilgileriEkrani(onIleriClicked: (Double, Double, Int) -> Unit) {
+    // 2. Senin değişken isimlerini kullanıyoruz.
     var kacYildirIciliyor by remember { mutableStateOf("") }
-    var gundeKacTaneIciliyor by remember { mutableStateOf("") }
-    var kacTl by remember { mutableStateOf("") }
+    var gundeKacPaket by remember { mutableStateOf("") } // "tane" yerine "paket" dedik.
+    var paketFiyati by remember { mutableStateOf("") }     // "kacTl" yerine "paketFiyati" dedik.
+
+    // 3. İŞTE O BAHSETTİĞİM KONTROL MEKANİZMASI
+    val bilgilerGecerli = kacYildirIciliyor.toIntOrNull() != null &&
+            gundeKacPaket.toDoubleOrNull() != null &&
+            paketFiyati.toDoubleOrNull() != null
 
 
     ArkaPlanBackground {
@@ -128,8 +134,8 @@ fun SigaraBilgileriEkrani(onIleriClicked: (String, String, String) -> Unit) {
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     TextField( // OutlinedTextField yerine TextField
-                        value = gundeKacTaneIciliyor,
-                        onValueChange = { gundeKacTaneIciliyor = it },
+                        value = gundeKacPaket,
+                        onValueChange = { gundeKacPaket = it },
                         modifier = Modifier.fillMaxWidth(),
                         placeholder = { Text("Örn: 20") },
                         keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
@@ -155,8 +161,8 @@ fun SigaraBilgileriEkrani(onIleriClicked: (String, String, String) -> Unit) {
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     TextField( // OutlinedTextField yerine TextField
-                        value = kacTl,
-                        onValueChange = { kacTl = it },
+                        value = paketFiyati,
+                        onValueChange = { paketFiyati = it },
                         modifier = Modifier.fillMaxWidth(),
                         placeholder = { Text("Örn: 100") },
                         keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
@@ -185,12 +191,12 @@ fun SigaraBilgileriEkrani(onIleriClicked: (String, String, String) -> Unit) {
                         Image(
                             painter = painterResource(id = R.drawable.liste),
                             contentDescription = "Liste",
-                            modifier = Modifier.size(140.dp)
+                            modifier = Modifier.size(80.dp)
                         )
                         Image(
                             painter = painterResource(id = R.drawable.sigara),
                             contentDescription = "Sigara",
-                            modifier = Modifier.size(140.dp)
+                            modifier = Modifier.size(80.dp)
                         )
                     }
                 }
@@ -198,7 +204,18 @@ fun SigaraBilgileriEkrani(onIleriClicked: (String, String, String) -> Unit) {
 
             // 3. İLERİ BUTONU (En altta)
             Button(
-                onClick = { onIleriClicked(kacYildirIciliyor, gundeKacTaneIciliyor,kacTl) },
+                onClick = {
+                    // **İŞTE DÜZELTME BURADA**
+                    // Metinleri alıp sayılara çeviriyoruz. Eğer çeviremezse 0 olarak kabul ediyor.
+                    val gundeKacPaketValue = gundeKacPaket.toDoubleOrNull() ?: 0.0
+                    val paketFiyatiValue = paketFiyati.toDoubleOrNull() ?: 0.0
+                    val icilenYilValue = kacYildirIciliyor.toIntOrNull() ?: 0
+
+                    // Fonksiyona artık doğru tiplerde (sayı olarak) yolluyoruz.
+                    onIleriClicked(gundeKacPaketValue, paketFiyatiValue, icilenYilValue)
+                },
+                // Butonu akıllı hale getiriyoruz.
+                enabled = bilgilerGecerli,
                 modifier = Modifier
                     .align(Alignment.BottomCenter) // Ekranın en altına hizala
                     .fillMaxWidth()
