@@ -121,7 +121,10 @@ class AnaSayfaViewModel(
             birikenParaFormatli = currencyFormatter.format(hesaplananBirikenPara),
             icilmeyenSigara = floor(hesaplananIcilmeyenSigara).toInt(),
             kazanilanHayatFormatli = "${kazanilanGun}g ${kazanilanSaat}s ${kazanilanDakika}d",
-            ilerlemeYuzdesi = (gun.toFloat() % 30) / 30f,
+            // Bir gündeki toplam saniye sayısı 86400'dür.
+// Gün içindeki ilerlemeyi, geçen saniyeye göre hesaplayalım.
+            ilerlemeYuzdesi = (toplamGecenSaniye % 86400) / 86400f,
+
             mevcutGun = gun.toInt(),
             // DOĞRU VE HESAPLANMIŞ VERİLERİ BURAYA YERLEŞTİRİYORUZ
             gecmisToplamIcilen = numberFormatter.format(gecmisteIcilenToplamSigara),
