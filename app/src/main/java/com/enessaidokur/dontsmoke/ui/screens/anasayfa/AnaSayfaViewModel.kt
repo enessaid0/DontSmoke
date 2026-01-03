@@ -10,13 +10,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlin.math.floor
+import kotlin.math.roundToInt
 
-// UiState sınıfı aynı kalıyor, bir sorun yok.
 data class AnaSayfaUiState(
     val gecenSureFormatli: String = "0g 0s 0d 0sn",
     val birikenParaFormatli: String = "0.00 ₺",
@@ -24,12 +25,13 @@ data class AnaSayfaUiState(
     val kazanilanHayatFormatli: String = "0g 0s 0d",
     val ilerlemeYuzdesi: Float = 0f,
     val mevcutGun: Int = 0,
+    // Başlangıç değerlerini "0" olarak ayarlıyoruz, "N/A" değil.
     val gecmisToplamIcilen: String = "0",
     val gecmisToplamHarcanan: String = "0 ₺",
-    val gecmisKaybedilenHayat: String = "0Y 0A 0G"
+    val gecmisKaybedilenHayat: String = "0 gün"
 )
 
-// Ana ViewModel Sınıfı
+// "N/A" SORUNUNU KESİN OLARAK ÇÖZEN SON ViewModel
 class AnaSayfaViewModel(
     private val repository: KullaniciVeriRepository
 ) : ViewModel() {
@@ -37,8 +39,8 @@ class AnaSayfaViewModel(
     private val _uiState = MutableStateFlow(AnaSayfaUiState())
     val uiState: StateFlow<AnaSayfaUiState> = _uiState.asStateFlow()
 
-    // Para formatlayıcıyı bir kere oluşturup tekrar tekrar kullanıyoruz.
     private val currencyFormatter = NumberFormat.getCurrencyInstance(Locale("tr", "TR"))
+    private val numberFormatter = NumberFormat.getNumberInstance(Locale("tr", "TR"))
 
     init {
         baslatCanliVeriAkisini()
@@ -46,33 +48,46 @@ class AnaSayfaViewModel(
 
     private fun baslatCanliVeriAkisini() {
         viewModelScope.launch(Dispatchers.Default) {
-            // combine bloğu, içindeki Flow'lardan herhangi biri değiştiğinde yeniden tetiklenir.
+            // Geçmiş hesaplamaları için 'icilenYil' flow'unu da dinlemek ZORUNDAYIZ.
             combine(
                 repository.birakmaTarihi,
                 repository.gundeKacPaket,
-                repository.paketFiyati
-                // icilenYil flow'unu kaldırdık çünkü artık ona ihtiyacımız yok, anlık hesaplanacak
-            ) { birakmaTarihi, gundePaket, paketFiyati ->
-                // Veriler hazır olduğunda, saniyelik zamanlayıcıyı başlat.
+                repository.paketFiyati,
+                repository.icilenYil // BU SATIR HAYATİ ÖNEMDE!
+            ) { birakmaTarihi, gundePaket, paketFiyati, icilenYil ->
+                // Bu blok, verilerden biri değiştiğinde veya ViewModel başladığında çalışır.
+                // Sürekli güncellemeyi 'while(true)' döngüsü ile yapacağız.
                 while (true) {
                     val simdikiZaman = System.currentTimeMillis()
-                    val tumHesaplamalar = hesapla(birakmaTarihi, gundePaket.toDouble(), paketFiyati.toDouble(), simdikiZaman)
-                    _uiState.value = tumHesaplamalar // Hesaplanan yeni durumu arayüze gönder.
-                    delay(1000) // 1 saniye bekle.
+                    val tumHesaplamalar = hesapla(
+                        birakmaTarihi = birakmaTarihi,
+                        gundeKacPaket = gundePaket.toDouble(),
+                        paketFiyati = paketFiyati.toDouble(),
+                        icilenYil = icilenYil.toDouble(), // Bu parametreyi hesapla fonksiyonuna gönderiyoruz
+                        simdikiZaman = simdikiZaman
+                    )
+                    _uiState.value = tumHesaplamalar
+                    delay(1000) // Her saniye döngüyü tekrarla
                 }
+
             }.collect {
-                // Bu kısım normalde bir şey yapmaz, combine'ın çalışması için gereklidir.
+                // Combine'ı başlatmak için boş bir collect gerekli.
             }
         }
     }
 
-    // Hesaplama fonksiyonunu daha basit ve doğru tiplerle çalışacak şekilde güncelledik.
-    private fun hesapla(birakmaTarihi: Long, gundeKacPaket: Double, paketFiyati: Double, simdikiZaman: Long): AnaSayfaUiState {
+    private fun hesapla(
+        birakmaTarihi: Long,
+        gundeKacPaket: Double,
+        paketFiyati: Double,
+        icilenYil: Double, // HESAPLAMA İÇİN BU PARAMETRE GEREKLİ
+        simdikiZaman: Long
+    ): AnaSayfaUiState {
         if (birakmaTarihi <= 0) {
-            return AnaSayfaUiState() // Bırakma tarihi yoksa, boş state döndür.
+            return AnaSayfaUiState() // Bırakma tarihi yoksa, tüm değerler "0" olan state döndürülür.
         }
 
-        // --- CANLI SAYAÇ HESAPLAMALARI ---
+        // --- CANLI SAYAÇ HESAPLAMALARI (Mevcut Kazanımlar) ---
         val gecenSureMillis = simdikiZaman - birakmaTarihi
         val toplamGecenSaniye = TimeUnit.MILLISECONDS.toSeconds(gecenSureMillis)
         val gun = TimeUnit.MILLISECONDS.toDays(gecenSureMillis)
@@ -80,7 +95,7 @@ class AnaSayfaViewModel(
         val dakika = TimeUnit.MILLISECONDS.toMinutes(gecenSureMillis) % 60
         val saniye = TimeUnit.MILLISECONDS.toSeconds(gecenSureMillis) % 60
 
-        val gundeIcilenAdet = gundeKacPaket * BIR_PAKETTEKI_SIGARA_SAYISI
+        val gundeIcilenAdet = gundeKacPaket * 20
         val gunlukMaliyet = gundeKacPaket * paketFiyati
         val saniyelikKazanc = if (gunlukMaliyet > 0) gunlukMaliyet / (24 * 3600) else 0.0
         val saniyelikSigara = if (gundeIcilenAdet > 0) gundeIcilenAdet / (24.0 * 3600.0) else 0.0
@@ -93,6 +108,14 @@ class AnaSayfaViewModel(
         val kazanilanSaat = ((kazanilanToplamDakika / 60) % 24).toInt()
         val kazanilanDakika = (kazanilanToplamDakika % 60).toInt()
 
+        // --- GEÇMİŞ HESAPLAMALARI ("N/A" YERİNE GERÇEK HESAP) ---
+        val toplamIcUgun = icilenYil * 365
+        val gecmisteIcilenToplamSigara = (toplamIcUgun * gundeKacPaket * 20).roundToInt()
+        val gecmisteHarcananToplamPara = toplamIcUgun * gundeKacPaket * paketFiyati
+        val kaybedilenToplamDakikaGecmis = gecmisteIcilenToplamSigara * 11
+        val kaybedilenGunGecmis = kaybedilenToplamDakikaGecmis / (60 * 24.0) // sonucu double almak için 24.0
+
+        // Tüm hesaplanmış verilerle dolu yeni UiState'i döndür.
         return AnaSayfaUiState(
             gecenSureFormatli = "${gun}g ${saat}s ${dakika}d ${saniye}sn",
             birikenParaFormatli = currencyFormatter.format(hesaplananBirikenPara),
@@ -100,17 +123,14 @@ class AnaSayfaViewModel(
             kazanilanHayatFormatli = "${kazanilanGun}g ${kazanilanSaat}s ${kazanilanDakika}d",
             ilerlemeYuzdesi = (gun.toFloat() % 30) / 30f,
             mevcutGun = gun.toInt(),
-            // Geçmiş hesaplamaları şimdilik basitleştiriyoruz, gerekirse sonra eklenir.
-            gecmisToplamIcilen = "N/A",
-            gecmisToplamHarcanan = "N/A",
-            gecmisKaybedilenHayat = "N/A"
+            // DOĞRU VE HESAPLANMIŞ VERİLERİ BURAYA YERLEŞTİRİYORUZ
+            gecmisToplamIcilen = numberFormatter.format(gecmisteIcilenToplamSigara),
+            gecmisToplamHarcanan = "${numberFormatter.format(gecmisteHarcananToplamPara.roundToInt())} ₺",
+            gecmisKaybedilenHayat = "${numberFormatter.format(kaybedilenGunGecmis.roundToInt())} gün"
         )
     }
 
-    // Factory kısmı aynı kalıyor, bir sorun yok.
     companion object {
-        private const val BIR_PAKETTEKI_SIGARA_SAYISI = 20
-
         fun Factory(repository: KullaniciVeriRepository): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")

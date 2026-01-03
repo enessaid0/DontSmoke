@@ -219,7 +219,7 @@ fun GecmisIstatistikKarti(toplamIcilen: String, toplamHarcanan: String, kaybedil
             )
             Spacer(modifier = Modifier.height(16.dp))
             GecmisSatir(iconResId = R.drawable.sigaraicon, deger = toplamIcilen, aciklama = "Sigara içildi.")
-            GecmisSatir(iconResId = R.drawable.money, deger = "$toplamHarcanan ₺", aciklama = "Para Harcandı.")
+            GecmisSatir(iconResId = R.drawable.money, deger = "$toplamHarcanan ", aciklama = "Para Harcandı.")
             GecmisSatir(iconResId = R.drawable.takvim, deger = kaybedilenHayat, aciklama = "Hayat Kaybedildi.")
         }
     }
